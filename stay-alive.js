@@ -150,12 +150,17 @@ function decodeJwt(jwt) {
 }
 
 // ----- discord --------------------------------------------------------------
-async function discord(embed) {
+async function discord(embed, mention) {
   if (!CFG.discordWebhook) { log('info', '(no webhook configured) ' + embed.title); return; }
   try {
+    const payload = { embeds: [embed] };
+    if (mention && CFG.discordMention) {
+      payload.content = CFG.discordMention;
+      payload.allowed_mentions = { parse: ['everyone', 'users', 'roles'] };
+    }
     const r = await fetch(CFG.discordWebhook, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ embeds: [embed] }),
+      body: JSON.stringify(payload),
     });
     if (!r.ok) log('error', `discord webhook returned ${r.status}`);
   } catch (e) { log('error', 'discord post failed: ' + e.message); }
@@ -298,11 +303,25 @@ function startHealthServer() {
 // ---------------------------------------------------------------------------
 // The attempt: drive a headless browser through login -> captcha -> stayAlive
 // ---------------------------------------------------------------------------
+async function launchBrowser() {
+  let lastErr;
+  for (let i = 1; i <= 3; i++) {
+    try {
+      return await chromium.launch({
+        headless: true,
+        args: ['--no-sandbox', '--disable-dev-shm-usage', '--disable-blink-features=AutomationControlled'],
+      });
+    } catch (e) {
+      lastErr = e;
+      log('error', `chromium launch ${i}/3 failed: ${e && e.message || e}`);
+      if (i < 3) await sleep(2000 * i);
+    }
+  }
+  throw lastErr;
+}
+
 async function runAttempt() {
-  const browser = await chromium.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-dev-shm-usage', '--disable-blink-features=AutomationControlled'],
-  });
+  const browser = await launchBrowser();
   try {
     const ctx = await browser.newContext({ userAgent: CFG.userAgent, viewport: { width: 390, height: 844 }, locale: 'en-US' });
     const page = await ctx.newPage();
@@ -395,7 +414,8 @@ async function runAttempt() {
 // ---------------------------------------------------------------------------
 function classify(r) {
   if (!r || !r.steps || !r.steps.login) {
-    return { kind: 'error', category: 'launch', summary: 'Could not reach the site or run the page.' };
+    const why = r && r.fatal ? `: ${r.fatal}` : '';
+    return { kind: 'error', category: 'launch', summary: `Could not reach the site or run the page${why}` };
   }
   if (r.alreadyDone) return { kind: 'already', summary: 'Already checked in for today (no action needed).' };
 
@@ -437,6 +457,7 @@ function diagBlock(r) {
   if ('isSafe' in r) lines.push(`isSafe:     ${r.isSafe}`);
   if (s.captcha)   lines.push(`captcha:    ok=${s.captcha.ok} len=${s.captcha.tokenLength}${s.captcha.error ? ' err=' + s.captcha.error : ''}`);
   if (s.stayAlive) lines.push(`stayAlive:  HTTP ${s.stayAlive.status} ${trunc(typeof s.stayAlive.body === 'object' ? JSON.stringify(s.stayAlive.body) : s.stayAlive.body, 120)}`);
+  if (r.fatal)     lines.push(`launch err: ${trunc(r.fatal, 300)}`);
   return lines.join('\n') || 'no steps recorded';
 }
 
@@ -587,7 +608,7 @@ async function main() {
         color: 0xc0392b,
         fields: [{ name: 'Date', value: today }, { name: 'Attempts', value: String(loadState().attempts) }],
         timestamp: new Date().toISOString(),
-      });
+      }, true);
     }
 
     const until = nextMidnightETMs() - Date.now();
