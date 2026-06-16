@@ -1,0 +1,64 @@
+name: bump-playwright
+
+# Keeps the npm `playwright` pin and the Docker base image tag on the SAME
+# version, bumping both together in a single PR. Low churn by design — runs
+# monthly (tontine itself hasn't changed since 2021), plus on-demand.
+
+on:
+  schedule:
+    - cron: '0 6 1 * *'      # 06:00 UTC on the 1st of each month
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve current vs latest Playwright
+        id: v
+        run: |
+          LATEST=$(npm view playwright version)
+          CURRENT=$(node -p "require('./package.json').dependencies.playwright")
+          echo "latest=$LATEST"   >> "$GITHUB_OUTPUT"
+          echo "current=$CURRENT" >> "$GITHUB_OUTPUT"
+          if [ "$LATEST" = "$CURRENT" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Already on $CURRENT — nothing to do."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "Bumping $CURRENT -> $LATEST"
+          fi
+
+      - name: Apply lockstep bump
+        if: steps.v.outputs.changed == 'true'
+        env:
+          LATEST: ${{ steps.v.outputs.latest }}
+        run: |
+          # 1) npm pin in package.json
+          node -e "const f='package.json';const p=require('./'+f);p.dependencies.playwright=process.env.LATEST;require('fs').writeFileSync(f,JSON.stringify(p,null,2)+'\n');"
+          # 2) every base-image reference must match the SAME version
+          for file in Dockerfile compose.unraid.yml tontine-stayalive.xml; do
+            sed -i -E "s#(mcr\.microsoft\.com/playwright:v)[0-9]+\.[0-9]+\.[0-9]+(-jammy)#\1${LATEST}\2#g" "$file"
+          done
+          echo "Changed files:"; git --no-pager diff --name-only
+
+      - name: Open PR
+        if: steps.v.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch: chore/playwright-${{ steps.v.outputs.latest }}
+          title: "chore: bump Playwright to v${{ steps.v.outputs.latest }}"
+          commit-message: "chore: bump Playwright npm + base image to v${{ steps.v.outputs.latest }}"
+          body: |
+            Automated lockstep bump of Playwright.
+
+            - npm `playwright`: `${{ steps.v.outputs.current }}` → `${{ steps.v.outputs.latest }}`
+            - base image `mcr.microsoft.com/playwright`: `v${{ steps.v.outputs.current }}-jammy` → `v${{ steps.v.outputs.latest }}-jammy`
+
+            The npm package and the Docker base image are pinned to the **same**
+            version so they never drift apart. Merging this rebuilds `:latest`.

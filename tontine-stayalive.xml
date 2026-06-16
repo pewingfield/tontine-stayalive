@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>tontine-stayalive</Name>
+  <Repository>mcr.microsoft.com/playwright:v1.49.0-jammy</Repository>
+  <Registry>https://mcr.microsoft.com/en-us/product/playwright/about</Registry>
+  <Network>bridge</Network>
+  <Privileged>false</Privileged>
+  <Support/>
+  <Project>https://tontine.cash</Project>
+  <Overview>Daily tontine.cash stay-alive check-in with diagnostics, Discord notifications, a health endpoint, and an alive/safe stats watcher. Before starting, copy stay-alive.js, package.json, entrypoint.sh and healthcheck.js into the App Code folder. Browsers are baked into the image; node deps install on first start.</Overview>
+  <Category>Tools: Other:</Category>
+  <WebUI>http://[IP]:[PORT:8718]/status</WebUI>
+  <Icon/>
+  <ExtraParams>--workdir /app --health-cmd "node /app/healthcheck.js" --health-interval=60s --health-timeout=10s --health-start-period=45s --health-retries=3</ExtraParams>
+  <PostArgs>sh /app/entrypoint.sh</PostArgs>
+  <Description>Watcher that performs the daily tontine.cash check-in for your own account and reports to Discord.</Description>
+  <Config Name="App Code" Target="/app" Default="/mnt/user/appdata/tontine-stayalive" Mode="rw" Description="Folder containing stay-alive.js, package.json, entrypoint.sh and healthcheck.js" Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/tontine-stayalive</Config>
+  <Config Name="State" Target="/data" Default="/mnt/user/appdata/tontine-stayalive/data" Mode="rw" Description="Persists state.json and game.json across restarts" Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/tontine-stayalive/data</Config>
+  <Config Name="Status/Health Port" Target="8080" Default="8718" Mode="tcp" Description="HTTP /health and /status endpoint (host:container)" Type="Port" Display="always" Required="false" Mask="false">8718</Config>
+  <Config Name="TONTINE_EMAIL" Target="TONTINE_EMAIL" Default="" Description="Your tontine account email" Type="Variable" Display="always" Required="true" Mask="false"/>
+  <Config Name="TONTINE_PASSWORD" Target="TONTINE_PASSWORD" Default="" Description="Your tontine password" Type="Variable" Display="always" Required="true" Mask="true"/>
+  <Config Name="DISCORD_WEBHOOK_URL" Target="DISCORD_WEBHOOK_URL" Default="" Description="Discord webhook URL. Change this (and restart) to target a different channel." Type="Variable" Display="always" Required="false" Mask="true"/>
+  <Config Name="ATTEMPTS_PER_DAY" Target="ATTEMPTS_PER_DAY" Default="12" Value="12" Description="Randomized attempts spread across the window" Type="Variable" Display="always" Required="false" Mask="false">12</Config>
+  <Config Name="WINDOW_HOURS" Target="WINDOW_HOURS" Default="12" Value="12" Description="Attempts land in the first N hours of the ET day" Type="Variable" Display="always" Required="false" Mask="false">12</Config>
+  <Config Name="OVERTIME" Target="OVERTIME" Default="true" Value="true" Description="Keep retrying past the window until just before midnight" Type="Variable" Display="always" Required="false" Mask="false">true</Config>
+  <Config Name="HEALTH_PORT" Target="HEALTH_PORT" Default="8080" Value="8080" Description="Container port the status server listens on (match the container side of the port mapping)" Type="Variable" Display="advanced" Required="true" Mask="false">8080</Config>
+  <Config Name="WATCH_STATS" Target="WATCH_STATS" Default="true" Value="true" Description="Alert on alive (purges) and safe (check-ins working) changes" Type="Variable" Display="advanced" Required="false" Mask="false">true</Config>
+  <Config Name="STATS_POLL_MIN" Target="STATS_POLL_MIN" Default="15" Value="15" Description="How often (minutes) to poll the stats endpoint" Type="Variable" Display="advanced" Required="false" Mask="false">15</Config>
+  <Config Name="ERROR_RENOTIFY_HOURS" Target="ERROR_RENOTIFY_HOURS" Default="3" Value="3" Description="Suppress identical errors to Discord for this many hours" Type="Variable" Display="advanced" Required="false" Mask="false">3</Config>
+  <Config Name="TZ_NAME" Target="TZ_NAME" Default="America/New_York" Value="America/New_York" Description="Timezone the daily deadline is measured in" Type="Variable" Display="advanced" Required="false" Mask="false">America/New_York</Config>
+  <Config Name="DEBUG" Target="DEBUG" Default="false" Value="false" Description="Verbose JSON logging" Type="Variable" Display="advanced" Required="false" Mask="false">false</Config>
+  <Config Name="Skip browser download" Target="PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD" Default="1" Value="1" Description="Browsers are preinstalled in the image" Type="Variable" Display="advanced" Required="true" Mask="false">1</Config>
+</Container>

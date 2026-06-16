@@ -1,0 +1,17 @@
+{
+  "name": "tontine-stayalive",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Headless-browser watcher that performs the daily tontine.cash stay-alive check-in with diagnostics + Discord notifications.",
+  "main": "stay-alive.js",
+  "scripts": {
+    "start": "node stay-alive.js",
+    "once": "ATTEMPT_ON_START=true ATTEMPTS_PER_DAY=1 WINDOW_HOURS=0 OVERTIME=false node stay-alive.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "playwright": "1.49.0"
+  }
+}

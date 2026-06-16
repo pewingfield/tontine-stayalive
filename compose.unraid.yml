@@ -1,0 +1,33 @@
+# For Unraid's "Docker Compose Manager" plugin (no local image build).
+# Uses the PUBLISHED Playwright image and bind-mounts the code in.
+# Put stay-alive.js, package.json, entrypoint.sh and healthcheck.js in the appdata folder first.
+services:
+  tontine-stayalive:
+    image: mcr.microsoft.com/playwright:v1.49.0-jammy
+    container_name: tontine-stayalive
+    restart: unless-stopped
+    working_dir: /app
+    command: ["sh", "/app/entrypoint.sh"]
+    ports:
+      - "8718:8080"          # host:container — /health and /status for Homarr/Homepage
+    environment:
+      TZ_NAME: America/New_York
+      HEALTH_PORT: "8080"
+      TONTINE_EMAIL: "you@example.com"
+      TONTINE_PASSWORD: "your_password"
+      # Change this one value (and restart) to point at a different Discord channel:
+      DISCORD_WEBHOOK_URL: "https://discord.com/api/webhooks/XXX/YYY"
+      ATTEMPTS_PER_DAY: "12"
+      WINDOW_HOURS: "12"
+      OVERTIME: "true"
+      ERROR_RENOTIFY_HOURS: "3"
+      STATE_PATH: /data/state.json
+    volumes:
+      - /mnt/user/appdata/tontine-stayalive:/app
+      - /mnt/user/appdata/tontine-stayalive/data:/data
+    healthcheck:
+      test: ["CMD", "node", "/app/healthcheck.js"]
+      interval: 60s
+      timeout: 10s
+      start_period: 45s
+      retries: 3

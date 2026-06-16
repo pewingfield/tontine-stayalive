@@ -1,0 +1,11 @@
+.git
+.github
+data
+node_modules
+.env
+*.md
+docker-compose.yml
+compose.unraid.yml
+compose.ghcr.yml
+tontine-stayalive*.xml
+entrypoint.sh

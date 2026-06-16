@@ -1,0 +1,26 @@
+# Run the PUBLISHED image from GHCR — no build, no source bind-mount.
+# The image is self-contained (code + browsers + healthcheck baked in);
+# you only mount /data for state and set env vars.
+services:
+  tontine-stayalive:
+    image: ghcr.io/pewingfield/tontine-stayalive:latest
+    container_name: tontine-stayalive
+    restart: unless-stopped
+    ports:
+      - "8718:8080"          # host:container — /health and /status
+    environment:
+      TZ_NAME: America/New_York
+      HEALTH_PORT: "8080"
+      TONTINE_EMAIL: "you@example.com"
+      TONTINE_PASSWORD: "your_password"
+      # Change this one value (and restart) to point at a different Discord channel:
+      DISCORD_WEBHOOK_URL: "https://discord.com/api/webhooks/XXX/YYY"
+      ATTEMPTS_PER_DAY: "12"
+      WINDOW_HOURS: "12"
+      OVERTIME: "true"
+      WATCH_STATS: "true"
+      ERROR_RENOTIFY_HOURS: "3"
+      STATE_PATH: /data/state.json
+    volumes:
+      - /mnt/user/appdata/tontine-stayalive/data:/data
+    # HEALTHCHECK is baked into the image; Unraid will show the health badge automatically.

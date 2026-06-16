@@ -1,0 +1,19 @@
+services:
+  tontine-stayalive:
+    build: .
+    container_name: tontine-stayalive
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "8718:8080"              # /health and /status
+    environment:
+      TZ_NAME: America/New_York
+      HEALTH_PORT: "8080"
+      ATTEMPTS_PER_DAY: "12"
+      WINDOW_HOURS: "12"
+      OVERTIME: "true"
+      WATCH_STATS: "true"
+      ERROR_RENOTIFY_HOURS: "3"
+      DEBUG: "false"
+    volumes:
+      - ./data:/data
