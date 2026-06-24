@@ -134,5 +134,10 @@ rebuilt at the start of each ET day and on boot.
 ## Files
 
 - `stay-alive.js` — the watcher (scheduler, browser flow, classifier, notifier).
-- `Dockerfile` / `docker-compose.yml` — container build + deploy.
+- `healthcheck.js` — process heartbeat behind the `/health` and `/status` endpoints.
+- `Dockerfile` / `entrypoint.sh` — image build and container entrypoint.
 - `.env.example` — all configuration.
+- `compose.ghcr.yml` / `compose.unraid.yml` — Compose stacks (published image / Unraid).
+- `docker-compose.yml` — generic Compose deploy.
+- `tontine-stayalive-ghcr.xml` / `tontine-stayalive.xml` — Unraid Add Container templates (published image / from source).
+- `.github/workflows/` — `docker-publish.yml` (build + push to GHCR) and `bump-playwright.yml` (monthly Playwright version sync).
