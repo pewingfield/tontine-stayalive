@@ -48,63 +48,6 @@ docker run -d --name tontine-stayalive --restart unless-stopped \
   ghcr.io/pewingfield/tontine-stayalive:latest
 ```
 
-GHCR packages are **private by default**. For Jarvis to pull anonymously, open the
-package page on GitHub → *Package settings* → *Change visibility* → **Public**.
-(Or keep it private and run `docker login ghcr.io` on Unraid with a PAT that has
-`read:packages`.)
-
-## Running on Unraid (from source, no image build)
-
-If you'd rather not use CI, run the **official Playwright image** (browsers already
-baked in) and bind-mount the code into it. Nothing is built on the box.
-
-**1. Put the code in appdata.** Copy these three files into
-`/mnt/user/appdata/tontine-stayalive/` (via the Unraid file manager, an SMB
-share, or VS Code Remote-SSH):
-
-```
-stay-alive.js
-package.json
-entrypoint.sh
-```
-
-Keep that share on your cache pool, not the spinning array.
-
-**2a. Easiest — import the template.** Copy `tontine-stayalive.xml` to
-`/boot/config/plugins/dockerMan/templates-user/` on Jarvis, then in the Unraid
-**Docker** tab click **Add Container**, pick `tontine-stayalive` from the
-*Template* dropdown, fill in email/password/webhook, and **Apply**. Every tunable
-(including `DISCORD_WEBHOOK_URL`) shows up as an editable box.
-
-**2b. Or via SSH** (one shot, no template):
-
-```bash
-mkdir -p /mnt/user/appdata/tontine-stayalive/data
-# ...copy the three files into /mnt/user/appdata/tontine-stayalive first...
-docker run -d --name tontine-stayalive --restart unless-stopped \
-  -w /app \
-  -e TONTINE_EMAIL='you@example.com' \
-  -e TONTINE_PASSWORD='your_password' \
-  -e DISCORD_WEBHOOK_URL='https://discord.com/api/webhooks/XXX/YYY' \
-  -e ATTEMPTS_PER_DAY=12 -e WINDOW_HOURS=12 -e OVERTIME=true \
-  -e TZ_NAME=America/New_York -e STATE_PATH=/data/state.json \
-  -v /mnt/user/appdata/tontine-stayalive:/app \
-  -v /mnt/user/appdata/tontine-stayalive/data:/data \
-  mcr.microsoft.com/playwright:v1.49.0-jammy \
-  sh /app/entrypoint.sh
-docker logs -f tontine-stayalive
-```
-
-**2c. Or the Compose Manager plugin:** add a new stack and paste
-`compose.unraid.yml` (already uses the published image + `entrypoint.sh`, no
-build).
-
-### Changing the Discord channel later
-
-The target channel is just the `DISCORD_WEBHOOK_URL` env var. Edit the container
-in the Unraid UI (or the compose / `docker run`), paste the new channel's webhook
-URL, restart. No rebuild.
-
 ## Local / non-Unraid run
 
 ```bash
@@ -143,7 +86,7 @@ the examples):
     href: https://tontine.cash
     widget:
       type: customapi
-      url: http://JARVIS_IP:8718/status
+      url: http://DEVICE_IP:8718/status
       refreshInterval: 60000
       mappings:
         - field: checkin.status
@@ -157,7 +100,7 @@ the examples):
 ```
 
 **Homarr** — add a Ping/health-monitoring tile pointing at
-`http://JARVIS_IP:8718/health` for the status dot, or a custom-API/iframe tile on
+`http://DEVICE_IP:8718/health` for the status dot, or a custom-API/iframe tile on
 `/status` for the numbers.
 
 ## Watching alive & safe
@@ -187,58 +130,6 @@ Everything is env-driven (see `.env.example`). The knobs you'll actually touch:
 
 Changing values just needs a `docker compose up -d` (recreate); the schedule is
 rebuilt at the start of each ET day and on boot.
-
-## Continuous build (GitHub Actions → GHCR)
-
-`.github/workflows/docker-publish.yml` builds and pushes the image to
-`ghcr.io/<owner>/tontine-stayalive` on every push to `main`, on every `vX.Y.Z`
-tag, and on manual dispatch. It uses the built-in `GITHUB_TOKEN` (no secrets to
-configure) and needs `packages: write`, which the workflow already requests.
-
-Tags produced:
-
-- push to `main` → `:latest`, `:main`, `:sha-<short>`
-- tag `v1.2.3` → `:1.2.3`, `:1.2`, `:latest`
-
-After the first successful run, set the package visibility to **Public** (see
-above) so Unraid can pull it without credentials, then point your container at
-`ghcr.io/pewingfield/tontine-stayalive:latest`. Cut a versioned release with:
-
-```bash
-git tag v1.0.0 && git push origin v1.0.0
-```
-
-## Keeping Playwright in lockstep
-
-The npm `playwright` package and the `mcr.microsoft.com/playwright` base image
-**must be the same version** (the image ships the browser build that the JS
-package expects). `.github/workflows/bump-playwright.yml` enforces that: monthly
-(and on manual dispatch) it checks npm for the latest Playwright, and if it
-differs from the current pin it updates `package.json`, `Dockerfile`,
-`compose.unraid.yml` and `tontine-stayalive.xml` to the **same** version and opens
-one PR. Merging that PR triggers the build workflow, which republishes `:latest`.
-Low churn is expected — tontine itself hasn't changed since 2021 — so most months
-this is a no-op.
-
-## Two honest caveats
-
-- **It can't fix a server outage.** While MSCHF's `stayAlive` endpoint is
-  rejecting valid tokens, this fails on schedule too — it just gives you
-  visibility and grabs the moment the endpoint recovers, which a human watching
-  the clock won't. The value is the retry-until-it-works loop, not magic.
-- **reCAPTCHA score.** A headless datacenter browser sometimes scores low and
-  the backend can reject the captcha even when everything else is correct. If
-  you see persistent `captcha` or low-score errors once the server is healthy,
-  route the container through a residential egress (you've got the Tailscale/VPS
-  pieces for that) or run it on a residential IP.
-
-## A note on the rules
-
-The written Official Rules contain a generic "no automated entries" line, while
-the game was marketed and is widely run as survive-by-any-means (four-plus years
-with no winner is the evidence). Enforcement is entirely at MSCHF's discretion
-and unknowable. This automates only your own paid entry on your own account —
-your call to make with eyes open.
 
 ## Files
 
