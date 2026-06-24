@@ -24,7 +24,7 @@ don't cause duplicate check-ins or duplicate pings.
 
 ## Running on Unraid (recommended: published image)
 
-Once the GitHub Actions workflow has pushed the image (see below), this is the
+Once the GitHub Actions workflow has pushed the image, this is the
 simplest path — the image is self-contained (code + Chromium + healthcheck baked
 in), so there are **no source files to copy**. You only mount `/data` and set env
 vars.
