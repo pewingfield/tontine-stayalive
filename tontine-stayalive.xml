@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <Container version="2">
   <Name>tontine-stayalive</Name>
-  <Repository>mcr.microsoft.com/playwright:v1.49.0-jammy</Repository>
+  <Repository>mcr.microsoft.com/playwright:v1.61.1-jammy</Repository>
   <Registry>https://mcr.microsoft.com/en-us/product/playwright/about</Registry>
   <Network>bridge</Network>
   <Privileged>false</Privileged>

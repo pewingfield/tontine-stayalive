@@ -3,7 +3,7 @@
 # Put stay-alive.js, package.json, entrypoint.sh and healthcheck.js in the appdata folder first.
 services:
   tontine-stayalive:
-    image: mcr.microsoft.com/playwright:v1.49.0-jammy
+    image: mcr.microsoft.com/playwright:v1.61.1-jammy
     container_name: tontine-stayalive
     restart: unless-stopped
     working_dir: /app

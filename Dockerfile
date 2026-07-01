@@ -1,5 +1,5 @@
 # Image tag MUST match the playwright version in package.json.
-FROM mcr.microsoft.com/playwright:v1.49.0-jammy
+FROM mcr.microsoft.com/playwright:v1.61.1-jammy
 
 ENV NODE_ENV=production
 WORKDIR /app
